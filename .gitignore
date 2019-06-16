@@ -35,3 +35,6 @@ sysinfo.txt
 *.apk
 *.unitypackage
 Assets/LowpolySubstances/
+Assets/ImportedAssets/LowpolySubstances/
+Assets/ImportedAssets/Fruit/Food - Fruits Pack/Textures/512x512/Watermelon_Whole.png.meta
+Assets/ImportedAssets/Fruit/
