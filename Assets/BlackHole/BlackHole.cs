@@ -13,7 +13,6 @@ public class BlackHole : MonoBehaviour
     [SerializeField] bool tutorial = false;
     [SerializeField] AudioClip[] cometImpact;
     [SerializeField] AudioClip starEaten;
-    [SerializeField] GameObject particle;
     [Range(0f, 1f)] [SerializeField] float soundVolume = 0.5f;
 
     bool alive = true;
@@ -21,20 +20,20 @@ public class BlackHole : MonoBehaviour
     Vector3 pos;
     CameraShaker cameraShaker;
     LifePoints lifePoints;
-    CircleCollider2D circleCollider;
-    Rigidbody2D myRigidbody;
+    Rigidbody myRigidbody;
+    Vector3 targetPos;
+    float lerp;
 
     void Start()
     {
         pos = Camera.main.ViewportToWorldPoint(new Vector3(0f, 0f, 60f));
         lifePoints = GetComponent<LifePoints>();
-        circleCollider = GetComponent<CircleCollider2D>();
-        myRigidbody = GetComponent<Rigidbody2D>();
+        myRigidbody = GetComponent<Rigidbody>();
         cameraShaker = FindObjectOfType<CameraShaker>();
-        particle = Instantiate(particle, transform.position, Quaternion.identity, transform);
         if (!tutorial)
         {
             GetNewTargetPos();
+            CheckRotation();
         }
     }
 
@@ -45,8 +44,8 @@ public class BlackHole : MonoBehaviour
             if (!tutorial && checkIfOutOfBounds() || !tutorial && myRigidbody.velocity.magnitude< minSpeed)
             {
                 GetNewTargetPos();
+                CheckRotation();
             }
-            UpdateSizeFromLifePoints();
             if(myRigidbody.velocity.magnitude > maxSpeed)
             {
                 myRigidbody.velocity = Vector3.ClampMagnitude(myRigidbody.velocity, maxSpeed);
@@ -54,7 +53,16 @@ public class BlackHole : MonoBehaviour
         }
     }
 
-    private void OnCollisionEnter2D(Collision2D collision)
+    private void CheckRotation()
+    {
+        
+        Vector3 rotation = targetPos - transform.position;
+        float angle = Mathf.Atan2(rotation.y, rotation.x) * Mathf.Rad2Deg;
+        transform.rotation = Quaternion.Euler(new Vector3(angle + 90f, -90f, 90f));
+
+    }
+
+    private void OnCollisionEnter(Collision collision)
     {
         if (collision.gameObject.GetComponent<Star>())
         {
@@ -66,7 +74,7 @@ public class BlackHole : MonoBehaviour
         }
     }
 
-    private void StarCollided(Collision2D collision)
+    private void StarCollided(Collision collision)
     {
         AudioSource.PlayClipAtPoint(starEaten, Camera.main.transform.position, soundVolume);
         Instantiate(absorbingStar, collision.GetContact(0).point, Quaternion.identity, collision.gameObject.transform);
@@ -75,7 +83,7 @@ public class BlackHole : MonoBehaviour
         star.DestroyStar(false);
     }
 
-    private void CometCollided(Collision2D collision)
+    private void CometCollided(Collision collision)
     {
         AudioSource.PlayClipAtPoint(cometImpact[Random.Range(0, cometImpact.Length)], Camera.main.transform.position, soundVolume);
         Destroy(Instantiate(clashWithComet, collision.GetContact(0).point, Quaternion.identity), clashWithComet.GetComponent<ParticleSystem>().main.duration);
@@ -83,7 +91,7 @@ public class BlackHole : MonoBehaviour
         cameraShaker.AddShakeDuration(0.2f);
     }
 
-    private void GetHealed(Collision2D collision)
+    private void GetHealed(Collision collision)
     {
         int healing = collision.gameObject.GetComponent<Comet>().GetDamageDone();
         lifePoints.RemoveLife(-healing);
@@ -105,27 +113,20 @@ public class BlackHole : MonoBehaviour
         }
     }
 
-    void UpdateSizeFromLifePoints()
-    {
-        circleCollider.radius = 1.35f + (lifePoints.GetCurrentLifePoints() * 0.0275f);
-        var particles = particle.GetComponent<ParticleSystem>().main;
-        particles.startSizeMultiplier = circleCollider.radius * 4f;
-    }
-
     void GetNewTargetPos()
     {
         float minX = pos.x * 0.3f;
         float maxX = pos.x * -0.7f;
         float minY = pos.y * 0.3f;
         float maxY = pos.y * -0.7f;
-        var targetPos = new Vector3(Random.Range(minX, maxX), Random.Range(minY, maxY));
-        myRigidbody.AddForce((targetPos - transform.position) * moveSpeed, ForceMode2D.Impulse);
+        targetPos = new Vector3(Random.Range(minX, maxX), Random.Range(minY, maxY));
+        myRigidbody.AddForce((targetPos - transform.position) * moveSpeed, ForceMode.Impulse);
     }
 
     public void BlackholeDied()
     {
         alive = false;
-        Destroy(particle);
+        //Destroy(particle);
     }
 
     // used for when finished to stop
